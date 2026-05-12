@@ -1,145 +1,192 @@
-# Django Boilerplate
+# Django REST Framework Boilerplate
 
-Django REST Framework + JWT 인증 + 샘플 CRUD를 포함한 Django 보일러플레이트입니다.
+A production-ready Django 4.2 LTS project with:
 
-## 기술 스택
+- **Django REST Framework** for the API layer
+- **SimpleJWT** for access + refresh token authentication
+- **Custom User model** (email-based, no username)
+- **Items CRUD** as a sample resource
+- **django-environ** for 12-factor configuration
+- **django-cors-headers** for cross-origin requests
+- Split settings: `base` / `development` / `production`
 
-| 항목 | 기술 |
-|------|------|
-| 프레임워크 | Django 4.2 LTS |
-| REST API | Django REST Framework (DRF) |
-| 인증 | djangorestframework-simplejwt |
-| DB (개발) | SQLite |
-| DB (운영) | PostgreSQL 권장 |
-| 설정 관리 | django-environ |
-| CORS | django-cors-headers |
+---
 
-## 주요 기능
-
-- **커스텀 User 모델**: email을 USERNAME_FIELD로 사용 (AbstractBaseUser)
-- **JWT 인증**: Access Token (60분) + Refresh Token (7일)
-- **분리된 설정**: base / development / production 설정 분리
-- **권한 관리**: IsAdminUser, IsOwnerOrAdmin 커스텀 퍼미션
-- **페이지네이션**: StandardResultsPagination (page_size=20)
-- **샘플 CRUD**: User, Item 전체 CRUD ViewSet
-
-## 빠른 시작
+## Quick Start
 
 ```bash
-# 가상환경 생성
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# 1. Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
-# 의존성 설치
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 환경 변수 설정
+# 3. Configure environment
 cp .env.example .env
-# .env에서 SECRET_KEY, DATABASE_URL 등 설정
+# Edit .env and set at minimum:
+#   SECRET_KEY=<some-long-random-string>
 
-# DB 마이그레이션
+# 4. Apply migrations
 python manage.py migrate
 
-# 슈퍼유저 생성
+# 5. Create a superuser
 python manage.py createsuperuser
 
-# 개발 서버 실행
+# 6. Run the development server
 python manage.py runserver
 ```
 
-API 문서: http://localhost:8000/api/v1/
+The API is now available at `http://127.0.0.1:8000/`.
 
-## API 엔드포인트
+---
 
-### 인증 (`/api/v1/auth`)
+## API Reference
 
-| 메서드 | 경로 | 설명 |
-|--------|------|------|
-| POST | `/api/v1/auth/register` | 회원가입 |
-| POST | `/api/v1/auth/login` | 로그인 → access + refresh 토큰 |
-| POST | `/api/v1/auth/refresh` | Access 토큰 갱신 |
-| GET  | `/api/v1/auth/me` | 현재 사용자 정보 |
+### Authentication
 
-### 사용자 (`/api/v1/users`)
+| Method | URL | Description | Auth |
+|--------|-----|-------------|------|
+| POST | `/api/v1/auth/register` | Create account | Public |
+| POST | `/api/v1/auth/login` | Obtain JWT pair + user | Public |
+| POST | `/api/v1/auth/refresh` | Refresh access token | Public |
+| POST | `/api/v1/auth/logout` | Blacklist refresh token | JWT |
+| GET | `/api/v1/auth/me` | Current user profile | JWT |
+| PATCH | `/api/v1/auth/me` | Update own profile | JWT |
+| POST | `/api/v1/auth/me/password` | Change password | JWT |
 
-| 메서드 | 경로 | 설명 | 권한 |
-|--------|------|------|------|
-| GET    | `/api/v1/users/` | 목록 조회 | 관리자 |
-| POST   | `/api/v1/users/` | 생성 | 관리자 |
-| GET    | `/api/v1/users/{id}/` | 단건 조회 | 본인 or 관리자 |
-| PUT    | `/api/v1/users/{id}/` | 수정 | 본인 or 관리자 |
-| DELETE | `/api/v1/users/{id}/` | 삭제 | 관리자 |
-| GET    | `/api/v1/users/me/` | 내 프로필 | 인증 |
+### Users
 
-### 아이템 (`/api/v1/items`)
+| Method | URL | Description | Auth |
+|--------|-----|-------------|------|
+| GET | `/api/v1/users/` | List users | Admin |
+| GET | `/api/v1/users/<id>/` | Get user | Admin or Self |
+| PATCH | `/api/v1/users/<id>/` | Update user | Admin or Self |
+| DELETE | `/api/v1/users/<id>/` | Delete user | Admin |
+| POST | `/api/v1/users/<id>/activate/` | Activate account | Admin |
+| POST | `/api/v1/users/<id>/deactivate/` | Deactivate account | Admin |
 
-| 메서드 | 경로 | 설명 | 권한 |
-|--------|------|------|------|
-| GET    | `/api/v1/items/` | 목록 조회 (내 것) | 인증 |
-| POST   | `/api/v1/items/` | 생성 | 인증 |
-| GET    | `/api/v1/items/{id}/` | 단건 조회 | 소유자 or 관리자 |
-| PUT    | `/api/v1/items/{id}/` | 수정 | 소유자 or 관리자 |
-| DELETE | `/api/v1/items/{id}/` | 삭제 | 소유자 or 관리자 |
+### Items
 
-## 프로젝트 구조
+| Method | URL | Description | Auth |
+|--------|-----|-------------|------|
+| GET | `/api/v1/items/` | List own items | JWT |
+| POST | `/api/v1/items/` | Create item | JWT |
+| GET | `/api/v1/items/<id>/` | Get item | Owner or Admin |
+| PUT | `/api/v1/items/<id>/` | Replace item | Owner or Admin |
+| PATCH | `/api/v1/items/<id>/` | Partial update | Owner or Admin |
+| DELETE | `/api/v1/items/<id>/` | Delete item | Owner or Admin |
 
-```
-config/
-├── settings/
-│   ├── base.py         # 공통 설정 (INSTALLED_APPS, DRF, JWT 등)
-│   ├── development.py  # 개발 환경 (SQLite, DEBUG=True)
-│   └── production.py   # 운영 환경 스텁
-├── urls.py             # 루트 URL 설정
-└── wsgi.py
+**Items query parameters:**
 
-apps/
-├── accounts/
-│   ├── models.py       # 커스텀 User (AbstractBaseUser, email 로그인)
-│   ├── serializers.py  # UserSerializer, RegisterSerializer, LoginSerializer
-│   ├── views.py        # RegisterView, LoginView, RefreshView, MeView, UserCRUD
-│   ├── permissions.py  # IsAdminUser, IsOwnerOrAdmin
-│   └── urls.py
-└── items/
-    ├── models.py       # Item (title, description, owner FK, timestamps)
-    ├── serializers.py
-    ├── views.py        # ItemViewSet (JWT 보호)
-    └── urls.py
+| Param | Example | Description |
+|-------|---------|-------------|
+| `search` | `?search=django` | Filter by title/description |
+| `ordering` | `?ordering=-created_at` | Sort (prefix `-` for desc) |
+| `owner` | `?owner=5` | Filter by owner ID (admin only) |
+| `page` | `?page=2` | Page number |
+| `page_size` | `?page_size=50` | Items per page (max 100) |
 
-core/
-└── pagination.py       # StandardResultsPagination (page_size=20)
-```
+---
 
-## 환경 변수 (`.env`)
+## Example Requests
 
-```env
-SECRET_KEY=your-django-secret-key
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_URL=sqlite:///db.sqlite3
-
-# JWT
-ACCESS_TOKEN_LIFETIME_MINUTES=60
-REFRESH_TOKEN_LIFETIME_DAYS=7
-
-# CORS
-CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
-```
-
-## PostgreSQL 전환
-
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/dbname
-```
+### Register
 
 ```bash
-pip install psycopg2-binary
+curl -X POST http://127.0.0.1:8000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alice@example.com","password":"Str0ng!Pass","password_confirm":"Str0ng!Pass"}'
+```
+
+### Login
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alice@example.com","password":"Str0ng!Pass"}'
+```
+
+Response:
+```json
+{
+  "access":  "<jwt-access-token>",
+  "refresh": "<jwt-refresh-token>",
+  "user": { "id": 1, "email": "alice@example.com", ... }
+}
+```
+
+### Create an Item
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/items/ \
+  -H "Authorization: Bearer <access-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"My first item","description":"Hello world"}'
+```
+
+---
+
+## Project Structure
+
+```
+django-boilerplate/
+├── manage.py
+├── requirements.txt
+├── .env.example
+├── config/
+│   ├── settings/
+│   │   ├── base.py          # Shared settings
+│   │   ├── development.py   # SQLite, DEBUG=True
+│   │   └── production.py    # Production overrides
+│   ├── urls.py
+│   └── wsgi.py
+├── apps/
+│   ├── accounts/            # Custom User + JWT auth
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   ├── admin.py
+│   │   └── permissions.py
+│   └── items/               # Sample CRUD resource
+│       ├── models.py
+│       ├── serializers.py
+│       ├── views.py
+│       ├── urls.py
+│       └── admin.py
+└── core/
+    └── pagination.py        # StandardResultsPagination (page_size=20)
+```
+
+---
+
+## Settings
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SECRET_KEY` | (required) | Django secret key |
+| `DEBUG` | `False` | Enable debug mode |
+| `ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated host list |
+| `DATABASE_URL` | SQLite | Database URL (production) |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated CORS origins |
+| `JWT_ACCESS_TOKEN_LIFETIME_MINUTES` | `60` | Access token TTL in minutes |
+| `JWT_REFRESH_TOKEN_LIFETIME_DAYS` | `7` | Refresh token TTL in days |
+
+---
+
+## Running in Production
+
+```bash
+# Set the settings module
+export DJANGO_SETTINGS_MODULE=config.settings.production
+
+# Collect static files
+python manage.py collectstatic --noinput
+
+# Apply migrations
 python manage.py migrate
-```
 
-## 어드민
-
+# Run with gunicorn (install separately)
+gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4
 ```
-http://localhost:8000/admin/
-```
-
-superuser 계정으로 로그인하면 Django Admin 패널에서 User, Item을 직접 관리할 수 있습니다.
