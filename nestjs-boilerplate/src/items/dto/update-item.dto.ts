@@ -1,4 +1,12 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateItemDto } from './create-item.dto';
+import { IsString, IsOptional, MaxLength } from 'class-validator';
 
-export class UpdateItemDto extends PartialType(CreateItemDto) {}
+export class UpdateItemDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  title?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
